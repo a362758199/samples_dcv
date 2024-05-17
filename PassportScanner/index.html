@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PassportScanner</title>
+    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./reactive.css">
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-core@3.2.30/dist/core.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-license@3.2.21/dist/license.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-utility@1.2.20/dist/utility.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-label-recognizer@3.2.30/dist/dlr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-document-normalizer@2.2.10/dist/ddn.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-code-parser@2.2.10/dist/dcp.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-router@2.2.30/dist/cvr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@4.0.2/dist/dce.js"></script>
+</head>
+
+<body>
+    <div class="scanner-container">
+        <div class="header-container">
+            <h1 class="title">Passport Scanner</h1>
+            <button class="btn-open-recognize">Start Scanning</button>
+            <span class="text-loading">Loading Model...</span>
+        </div>
+        <div class="div-ui-container"></div>
+    </div>
+    <div class="result-container">
+        <div class="result-area">
+            <div class="normalized-image-area"></div>
+            <div class="parsed-result-area"></div>
+        </div>
+        <div class="btn-area">
+            <button class="btn-restart-video">RESTART VIDEO</button>
+        </div>
+    </div>
+    <script src="./index.js"></script>
+</body>
+
+</html>

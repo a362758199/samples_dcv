@@ -1,0 +1,22 @@
+@media screen and (max-width: 780px) and (orientation: portrait) {
+    .result-container {
+        justify-content: start;
+    }
+    .result-container .result-area {
+        width: 100%;
+        height: 85%;
+        flex-direction: column;
+    }
+
+    .result-container .result-area .normalized-image-area {
+        width: 100%;
+        height: 30%;
+    }
+    
+    .result-container .result-area .parsed-result-area {
+        width: 100%;
+        height: 70%;
+        background-color: #323234;
+        border-bottom: 1px solid hsla(0, 0%, 80%, .1);
+    }
+}

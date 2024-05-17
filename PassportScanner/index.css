@@ -1,0 +1,145 @@
+@font-face {
+    font-family: "Oswald-Regular";
+    src: url("./font/Oswald-Regular.ttf");
+}
+
+@font-face {
+    font-family: "Oswald-Light";
+    src: url("./font/Oswald-Light.ttf");
+}
+
+@font-face {
+    font-family: "OpenSans-Regular";
+    src: url("./font/OpenSans-Regular.ttf");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+.scanner-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.scanner-container .header-container {
+    width: 100%;
+    height: 80px;
+}
+
+.scanner-container .header-container .title {
+    font-size: 1.5em;
+    padding: 10px;
+}
+
+.scanner-container .header-container .btn-open-recognize {
+    margin-left: 10px;
+    padding: 0 5px;
+}
+
+.scanner-container .header-container .text-loading {
+    display: none;
+    color: red;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.scanner-container .div-ui-container {
+    width: 100%;
+    height: calc(100% - 80px);
+}
+
+.result-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+    background-color: #323234;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.result-container .btn-area {
+    width: 100%;
+    text-align: center;
+}
+
+.result-container .btn-area .btn-restart-video {
+    width: 120px;
+    height: 5vh;
+    min-height: 30px;
+    max-height: 50px;
+    background-color: #fe8e14;
+    border: 0;
+    color: #ffffff;
+    margin-top: 30px;
+    font-family: Oswald-Regular;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.result-container .result-area {
+    width: 80%;
+    height: 50%;
+    display: flex;
+}
+
+.result-container .result-area .normalized-image-area {
+    width: 50%;
+    height: 100%;
+    background-color: #121212;
+}
+
+.result-container .result-area .normalized-image-area canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.result-container .result-area .parsed-result-area {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    background-color: #707070;
+    padding: 2vh 10px 2vh 30px;
+    font-family: OpenSans-Regular;
+    font-size: 14px;
+    overflow: auto;
+}
+
+.result-container .result-area .parsed-result-area .mrz-string {
+    color: #ffffff;
+    font-size: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid hsla(0, 0%, 80%, .1);
+    font-family: Consolas, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
+}
+
+.result-container .result-area .parsed-result-area p .field-name {
+    color: #b4b4b4;
+}
+
+.result-container .result-area .parsed-result-area p .field-value {
+    color: #ffffff;
+}
+
+@keyframes dce-rotate {
+    from { transform: rotate(0turn); }
+    to { transform: rotate(1turn); }
+}
+@keyframes dce-scanlight {
+    from { top: 0; }
+    to { top: 97%; }
+}
