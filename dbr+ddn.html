@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Detect document boundary and read barcode.">
+    <meta name="keywords" content="ddn dbr">
+    <title>Detect document boundary and read barcode</title>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-bundle@2.2.3000/dist/dcv.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eruda/eruda.min.js"></script>
+    <script>eruda.init();</script>
+</head>
+
+<body>
+    <h1 style="font-size: 1.5em;">Detect document boundary and read barcode</h1>
+    <button id="btn-open-recognize" onclick="startCapturing()">Open camrea</button>
+    <div id="div-ui-container" style="margin-top: 10px;height: 700px;"></div>
+    Results:
+    <br>
+    <div id="div-results-container" style="width: 100%; height: 10vh; overflow: auto;"></div>
+    <script>
+        let router = null;
+        let cameraEnhancer = null;
+        let promiseCVRReady = null;
+
+        const cameraViewContainer = document.querySelector("#div-ui-container");
+        const resultsContainer = document.querySelector("#div-results-container");
+
+        /** LICENSE ALERT - README
+         * To use the library, you need to first specify a license key using the API "license" as shown below.
+         */
+        Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+        /** 
+         * You can visit https://www.dynamsoft.com/customer/license/trialLicense?utm_source=github&product=dlr&package=js to get your own trial license good for 30 days. 
+         * Note that if you downloaded this sample from Dynamsoft while logged in, the above license key may already be your own 30-day trial license.
+         * For more information, see https://www.dynamsoft.com/label-recognition/programming/javascript/user-guide.html?ver=latest#specify-the-license or contact support@dynamsoft.com.
+         * LICENSE ALERT - THE END 
+         */
+
+
+        /**
+         * Preloads the `LabelRecognizer` module
+         */
+        Dynamsoft.Core.CoreModule.loadWasm(["DDN","DBR"]);
+
+        /**
+         * Creates a CameraEnhancer instance for later use.
+         */
+        async function initDCE() {
+            const view = await Dynamsoft.DCE.CameraView.createInstance();
+            cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+            cameraViewContainer.append(view.getUIElement());
+            //cameraEnhancer.setScanRegion({x: 10,y: 30,width: 80,height: 20,isMeasuredInPercentage: true,})
+        }
+
+        /**
+         * Creates a CaptureVisionRouter instance and configure the task to recognize text.
+         * Also, make sure the original image is returned after it has been processed.
+         */
+        let cvrReady = (async function initCVR() {
+            await initDCE();
+            router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+            router.setInput(cameraEnhancer);
+            let settings = {
+              "CaptureVisionTemplates": [
+                {
+                  "Name": "DetectBoundary&ReadBarcode",
+                  "ImageROIProcessingNameArray": [
+                    "roi-document-detection","roi-read-barcodes-based-on-document"
+                  ]
+                }
+              ],
+              "TargetROIDefOptions": [
+                {
+                  "Name": "roi-document-detection",
+                  "TaskSettingNameArray": ["task-detect-boundary"]
+                },
+                {
+                  "Name": "roi-read-barcodes-based-on-document",
+                  "TaskSettingNameArray": ["task-read-barcode"],
+                  "Location":
+                  {
+                    "ReferenceObjectFilter" : {
+                      "ReferenceTargetROIDefNameArray": ["roi-document-detection"]
+                    }
+                  }
+                }
+              ],
+              "ImageParameterOptions": [
+                {
+                  "Name": "ip-general",
+                  "BinarizationModes": [
+                    {
+                    "Mode": "BM_LOCAL_BLOCK", 
+                    "BlockSizeX": 5,
+                    "BlockSizeY": 5,
+                    "ThresholdCompensation" : 5,
+                    }
+                  ]
+                }
+              ],
+              "BarcodeReaderTaskSettingOptions": [
+                {
+                  "Name": "task-read-barcode",
+                  "BarcodeFormatIds": ["BF_DEFAULT"]
+                }
+              ],
+              "DocumentNormalizerTaskSettingOptions": [
+                {
+                  "Name": "task-detect-boundary",
+                  "SectionImageParameterArray":     [
+                    {
+                        "Section": "ST_REGION_PREDETECTION",
+                        "ImageParameterName": "ip-general"
+                    },
+                    {
+                        "Section": "ST_DOCUMENT_DETECTION",
+                        "ImageParameterName": "ip-general"
+                    },
+                    {
+                        "Section": "ST_DOCUMENT_NORMALIZATION",
+                        "ImageParameterName": "ip-general"
+                    }
+                  ]
+                }
+              ]
+            }
+            await router.initSettings(settings);
+            /* Defines the result receiver for the task.*/
+            const resultReceiver = new Dynamsoft.CVR.CapturedResultReceiver();
+
+            resultReceiver.onDecodedBarcodesReceived = (result) =>{
+                if (!result.barcodeResultItems.length) return;
+                console.log(result);
+            }
+
+            await router.addResultReceiver(resultReceiver);
+
+            // Filter out unchecked and duplicate results.
+            const filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
+            filter.enableResultCrossVerification(Dynamsoft.Core.EnumCapturedResultItemType.CRIT_BARCODE, true); // Filter out unchecked barcodes.
+            // Filter out duplicate text lines within 3 seconds.
+            filter.enableResultDeduplication(Dynamsoft.Core.EnumCapturedResultItemType.CRIT_BARCODE, true);
+            filter.setDuplicateForgetTime(Dynamsoft.Core.EnumCapturedResultItemType.CRIT_BARCODE, 3000);
+            await router.addResultFilter(filter);
+        })();
+
+        async function startCapturing() {
+            try {
+                await (promiseCVRReady = promiseCVRReady || (async () => {
+                    await cvrReady;
+                    /* Starts streaming the video. */
+                    await cameraEnhancer.open();
+                    /* Uses the template "RecognizeTextLines_Default" to start a recognize task. */
+                    await router.startCapturing("DetectBoundary&ReadBarcode");
+                })());
+            } catch (ex) {
+                let errMsg = ex.message || ex;
+                console.error(errMsg);
+                alert(errMsg);
+            }
+        }
+    </script>
+</body>
+
+</html>
