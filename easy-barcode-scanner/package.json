@@ -1,0 +1,38 @@
+{
+  "name": "easy-barcode-scanner",
+  "version": "10.2.1002",
+  "description": "A wrapper for dynamsoft-barcode-reader-javascript. Easier to use.",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup -c",
+    "build:production": "rollup -c --environment BUILD:production",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Keillion/easy-barcode-scanner.git"
+  },
+  "keywords": [
+    "barcode",
+    "js",
+    "javascript"
+  ],
+  "author": "Dynamsoft",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/Keillion/easy-barcode-scanner/issues"
+  },
+  "homepage": "https://www.dynamsoft.com",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^20.11.6",
+    "rollup": "^4.9.5",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "dynamsoft-barcode-reader-bundle": "10.2.1000"
+  }
+}
