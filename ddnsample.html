@@ -234,7 +234,7 @@
                 [
                   {
                     "Mode": "QDM_GENERAL",
-                    "MinQuadrilateralAreaRatio": 0
+                    "MinQuadrilateralAreaRatio": 5
                   }
                 ],
               ExpectedDocumentsCount: 1,
@@ -441,7 +441,7 @@
          * NOTE that this condition will not be valid should you add a CapturedResultFilter
          * with ResultDeduplication enabled.
          */
-        if (frameCount === 30) {
+        if (frameCount === 20) {
           frameCount = 0;
           normalizedImageContainer.innerHTML = "";
           /**
