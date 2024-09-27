@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Quickly detect document boundaries from a live camera stream and crop the document out before normalizing it further through perspective correction, deskewing, and more." />
+  <meta name="keywords" content="camera based quadrilateral detection and normalization" />
+  <title>Detect the boundary of a document and normalize it</title>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-core@3.4.20/dist/core.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-license@3.4.20/dist/license.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-document-normalizer@2.4.20/dist/ddn.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-capture-vision-router@2.4.20/dist/cvr.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-camera-enhancer@4.1.0/dist/dce.js"></script>
+</head>
+
+<body>
+  <h1 style="font-size: 1.5em">
+    Detect the boundary of a document and normalize it
+  </h1>
+  <button id="start-detecting">Start Detecting</button>
+  <button id="restart-detecting" style="display: none">Restart Detecting</button>
+  <button id="confirm-quad-for-normalization">Confirm the Boundary</button>
+  <button id="normalize-with-confirmed-quad" disabled>Normalize</button><br />
+  <input type="checkbox" style="vertical-align: middle" id="auto-normalize" /><label style="vertical-align: middle" for="auto-normalize">Normalize Automatically</label>
+  <div id="div-ui-container" style="margin-top: 10px; height: 450px"></div>
+  <div id="div-image-container" style="display: none; width: 100%; height: 70vh"></div>
+  <div id="normalized-result"></div>
+  <script>
+    let quads = [];
+    let cameraEnhancer = null;
+    let router = null;
+    let items;
+    let layer;
+    let originalImage;
+    let imageEditorView;
+    let promiseCVRReady;
+    let frameCount = 0;
+
+    const btnStart = document.querySelector("#start-detecting");
+    const btnRestart = document.querySelector("#restart-detecting");
+    const cameraViewContainer = document.querySelector("#div-ui-container");
+    const normalizedImageContainer = document.querySelector("#normalized-result");
+    const btnEdit = document.querySelector("#confirm-quad-for-normalization");
+    const btnNormalize = document.querySelector("#normalize-with-confirmed-quad");
+    const imageEditorViewContainer = document.querySelector("#div-image-container");
+    const autoNormalize = document.querySelector("#auto-normalize");
+
+    /** LICENSE ALERT - README
+     * To use the library, you need to first call the method initLicense() to initialize the license using a license key string.
+     */
+    Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
+    /**
+     * The license "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9" is a temporary license for testing good for 24 hours.
+     * You can visit https://www.dynamsoft.com/customer/license/trialLicense?utm_source=github&architecture=dcv&product=ddn&package=js to get your own trial license good for 30 days.
+     * LICENSE ALERT - THE END
+     */
+
+    /**
+     * Preloads the `DocumentNormalizer` module, saving time in preparing for document border detection and image normalization.
+     */
+    Dynamsoft.Core.CoreModule.loadWasm(["DDN"]);
+
+    /**
+     * Creates a CameraEnhancer instance and prepares an ImageEditorView instance for later use.
+     */
+    async function initDCE() {
+      const view = await Dynamsoft.DCE.CameraView.createInstance();
+      cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(view);
+      imageEditorView = await Dynamsoft.DCE.ImageEditorView.createInstance(imageEditorViewContainer);
+      /* Creates an image editing layer for drawing found document boundaries. */
+      layer = imageEditorView.createDrawingLayer();
+      cameraViewContainer.append(view.getUIElement());
+    }
+
+    /**
+     * Creates a CaptureVisionRouter instance and configure the task to detect document boundaries.
+     * Also, make sure the original image is returned after it has been processed.
+     */
+    let cvrReady = (async function initCVR() {
+      await initDCE();
+      router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+      router.setInput(cameraEnhancer);
+      /**
+       * Sets the result types to be returned.
+       * Because we need to normalize the original image later, here we set the return result type to
+       * include both the quadrilateral and original image data.
+       */
+
+      // let newSettings = await router.getSimplifiedSettings("DetectDocumentBoundaries_Default");
+      // newSettings.capturedResultItemTypes |= Dynamsoft.Core.EnumCapturedResultItemType.CRIT_ORIGINAL_IMAGE;
+      // // newSettings.documentSettings.minQuadrilateralAreaRatio = 20;
+      // // newSettings.documentSettings.expectedDocumentsCount = 1;
+      // // newSettings.ScaleDownThreshold = 2300;
+      // await router.updateSettings("DetectDocumentBoundaries_Default", newSettings);
+
+      /*
+      const DDNsettings = {
+        "CaptureVisionTemplates": [
+          {
+            "Name": "DetectDocumentBoundaries_Default",
+            "OutputOriginalImage": 1,
+            "ImageROIProcessingNameArray": ["roi-detect-docs"]
+          },
+          {
+            "Name": "NormalizeDocument_Default",
+            "ImageROIProcessingNameArray": ["roi-normalize-docs"]
+          }
+        ],
+        "TargetROIDefOptions": [
+          {
+            "Name": "roi-detect-docs",
+            "TaskSettingNameArray": ["task-detect-docs"]
+          },
+          {
+            "Name": "roi-normalize-docs",
+            "TaskSettingNameArray": ["task-normalize-docs"]
+          }
+        ],
+        "ImageParameterOptions": [
+        {
+            "Name": "IP_0",
+            "ScaleDownThreshold": 512,
+            BinarizationModes: [
+              {
+                BinarizationThreshold: -1,
+                BlockSizeX: 5,
+                BlockSizeY: 5,
+                EnableFillBinaryVacancy: 0,
+                GrayscaleEnhancementModesIndex: -1,
+                Mode: "BM_LOCAL_BLOCK",
+                MorphOperation: "Close",
+                MorphOperationKernelSizeX: 3,
+                MorphOperationKernelSizeY: 3,
+                MorphShape: "Rectangle",
+                ThresholdCompensation: 4,
+              },
+              {
+                BinarizationThreshold: -1,
+                BlockSizeX: 7,
+                BlockSizeY: 7,
+                EnableFillBinaryVacancy: 0,
+                GrayscaleEnhancementModesIndex: -1,
+                Mode: "BM_LOCAL_BLOCK",
+                MorphOperation: "Close",
+                MorphOperationKernelSizeX: 3,
+                MorphOperationKernelSizeY: 3,
+                MorphShape: "Rectangle",
+                ThresholdCompensation: 4,
+              }
+            ],
+            GrayscaleEnhancementModes: [
+              {
+                Mode: "GEM_SHARPEN_SMOOTH",
+                SharpenBlockSizeX: 3,
+                SharpenBlockSizeY: 3,
+                SmoothBlockSizeX: 3,
+                SmoothBlockSizeY: 3,
+              }
+            ]
+        }
+        ], 
+        "DocumentNormalizerTaskSettingOptions": [
+          {
+            "Name": "task-detect-docs",
+            "QuadrilateralDetectionModes" : 
+            [
+                {
+                    "Mode" : "QDM_GENERAL",
+                    "MinQuadrilateralAreaRatio" : 20
+                }
+            ],
+            "ExpectedDocumentsCount":1,
+            ContentType: "CT_DOCUMENT",
+            CornerAngleRange: {
+              MaxValue: 110,
+              MinValue: 70,
+            },
+            DeskewMode: {
+              ContentDirection: 0,
+              Mode: "DM_PERSPECTIVE_CORRECTION",
+            }
+          },
+          {
+            "Name": "task-normalize-docs",
+            "StartSection": "ST_DOCUMENT_NORMALIZATION"
+          }
+        ]
+      };*/ 
+
+      const DDNsettings = {
+
+        CaptureVisionTemplates: [
+          {
+            ImageROIProcessingNameArray: ["roi-detect-document-boundaries"],
+            ImageSource: "",
+            MaxParallelTasks: 4,
+            MinImageCaptureInterval: 0,
+            Name: "DetectDocumentBoundaries_Default",
+            OutputOriginalImage: 1,
+            SemanticProcessingNameArray: null,
+            Timeout: 10000,
+          },
+          {
+            Name: "NormalizeDocument_Default",
+            ImageROIProcessingNameArray: ["roi-normalize-docs"]
+          }
+        ],
+          DocumentNormalizerTaskSettingOptions: [
+            {
+
+              BaseDocumentNormalizerTaskSettingName: "",
+              Brightness: 0,
+              ColourMode: "ICM_COLOUR",
+              ContentType: "CT_DOCUMENT",
+              Contrast: 0,
+              CornerAngleRange: {
+                MaxValue: 110,
+                MinValue: 70,
+              },
+              DeskewMode: {
+                ContentDirection: 0,
+                Mode: "DM_PERSPECTIVE_CORRECTION",
+              },
+              LineExtractionModes: [
+                {
+                  Mode: "LEM_GENERAL",
+                },
+              ],
+              MaxThreadsInOneTask: 4,
+              Name: "task-detect-document-boundaries",
+              PageSize: [-1, -1],
+              QuadrilateralDetectionModes:
+                [
+                  {
+                    "Mode": "QDM_GENERAL",
+                    "MinQuadrilateralAreaRatio": 0
+                  }
+                ],
+              ExpectedDocumentsCount: 1,
+              SectionImageParameterArray: [
+                {
+                  ContinueWhenPartialResultsGenerated: 1,
+                  ImageParameterName: "ip-detect",
+                  Section: "ST_REGION_PREDETECTION",
+                },
+                {
+                  ContinueWhenPartialResultsGenerated: 1,
+                  ImageParameterName: "ip-detect",
+                  Section: "ST_DOCUMENT_DETECTION",
+                },
+                {
+                  ContinueWhenPartialResultsGenerated: 1,
+                  ImageParameterName: "ip-detect",
+                  Section: "ST_DOCUMENT_NORMALIZATION",
+                },
+              ],
+              StartSection: "ST_REGION_PREDETECTION",
+              TerminateSetting: {
+                Section: "ST_DOCUMENT_DETECTION",
+                Stage: "IRUT_NULL",
+              },
+            },
+            {
+              Name: "task-normalize-docs",
+              StartSection: "ST_DOCUMENT_NORMALIZATION"
+            }
+          ],
+            GlobalParameter: {
+          MaxTotalImageDimension: 0,
+      },
+        ImageParameterOptions: [
+          {
+            BaseImageParameterName: "",
+            BinarizationModes: [
+              {
+                BinarizationThreshold: -1,
+                BlockSizeX: 5,
+                BlockSizeY: 5,
+                EnableFillBinaryVacancy: 0,
+                GrayscaleEnhancementModesIndex: -1,
+                Mode: "BM_LOCAL_BLOCK",
+                MorphOperation: "Close",
+                MorphOperationKernelSizeX: 3,
+                MorphOperationKernelSizeY: 3,
+                MorphShape: "Rectangle",
+                ThresholdCompensation: 4,
+              },
+              {
+                BinarizationThreshold: -1,
+                BlockSizeX: 7,
+                BlockSizeY: 7,
+                EnableFillBinaryVacancy: 0,
+                GrayscaleEnhancementModesIndex: -1,
+                Mode: "BM_LOCAL_BLOCK",
+                MorphOperation: "Close",
+                MorphOperationKernelSizeX: 3,
+                MorphOperationKernelSizeY: 3,
+                MorphShape: "Rectangle",
+                ThresholdCompensation: 4,
+              },
+            ],
+            ColourConversionModes: [
+              {
+                BlueChannelWeight: -1,
+                GreenChannelWeight: -1,
+                Mode: "CICM_GENERAL",
+                RedChannelWeight: -1,
+                ReferChannel: "H_CHANNEL",
+              },
+            ],
+            GrayscaleEnhancementModes: [
+              {
+                Mode: "GEM_SHARPEN_SMOOTH",
+                SharpenBlockSizeX: 3,
+                SharpenBlockSizeY: 3,
+                SmoothBlockSizeX: 3,
+                SmoothBlockSizeY: 3,
+              },
+            ],
+            GrayscaleTransformationModes: [
+              {
+                Mode: "GTM_ORIGINAL",
+              },
+            ],
+            IfEraseTextZone: 0,
+            Name: "ip-detect",
+            RegionPredetectionModes: [
+              {
+                AspectRatioRange: "[]",
+                FindAccurateBoundary: 0,
+                ForeAndBackgroundColours: "[]",
+                HeightRange: "[]",
+                ImageParameterName: "",
+                MeasuredByPercentage: 1,
+                MinImageDimension: 262144,
+                Mode: "RPM_GENERAL",
+                RelativeRegions: "[]",
+                Sensitivity: 1,
+                SpatialIndexBlockSize: 5,
+                WidthRange: "[]",
+              },
+            ],
+            ScaleDownThreshold: 512,
+            ScaleUpModes: [
+              {
+                AcuteAngleWithXThreshold: -1,
+                LetterHeightThreshold: 0,
+                Mode: "SUM_AUTO",
+                ModuleSizeThreshold: 0,
+                TargetLetterHeight: 0,
+                TargetModuleSize: 0,
+              },
+            ],
+            TextDetectionMode: {
+              CharHeightRange: [1, 1000, 1],
+              Direction: "HORIZONTAL",
+              MaxSpacingInALine: -1,
+              Mode: "TTDM_WORD",
+              Sensitivity: 7,
+              StringLengthRange: null,
+            },
+            TextureDetectionModes: [
+              {
+                Mode: "TDM_GENERAL_WIDTH_CONCENTRATION",
+                Sensitivity: 5,
+              },
+            ],
+          },
+        ],
+          TargetROIDefOptions: [
+            {
+              BaseTargetROIDefName: "",
+              Location: {
+                Offset: {
+                  FirstPoint: [0, 0, 1, 1],
+                  FourthPoint: [0, 100, 1, 1],
+                  MeasuredByPercentage: 1,
+                  ReferenceObjectOriginIndex: 0,
+                  ReferenceObjectType: "ROT_ATOMIC_OBJECT",
+                  ReferenceXAxis: {
+                    AxisType: "AT_MIDPOINT_EDGE",
+                    EdgeIndex: 0,
+                    LengthReference: "LR_X",
+                    RotationAngle: 90,
+                  },
+                  ReferenceYAxis: {
+                    AxisType: "AT_MIDPOINT_EDGE",
+                    EdgeIndex: 1,
+                    LengthReference: "LR_Y",
+                    RotationAngle: 90,
+                  },
+                  SecondPoint: [100, 0, 1, 1],
+                  ThirdPoint: [100, 100, 1, 1],
+                },
+              },
+              Name: "roi-detect-document-boundaries",
+              PauseFlag: 0,
+              TaskSettingNameArray: ["task-detect-document-boundaries"],
+            },
+            {
+              Name: "roi-normalize-docs",
+              TaskSettingNameArray: ["task-normalize-docs"]
+            }
+          ],
+    };
+      await router.initSettings(DDNsettings);
+
+      /* Defines the result receiver for the task.*/
+      const resultReceiver = new Dynamsoft.CVR.CapturedResultReceiver();
+      resultReceiver.onCapturedResultReceived = handleCapturedResult;
+      router.addResultReceiver(resultReceiver);
+    })();
+
+    /**
+     * Defines the callback function that is executed after each image has been processed.
+     */
+    async function handleCapturedResult(result) {
+      /* Do something with the result */
+      /* Saves the image data of the current frame for subsequent image editing. */
+      const originalImage = result.items.filter((item) => item.type === 1);
+      originalImageData = originalImage.length && originalImage[0].imageData;
+      if (!autoNormalize.checked) {
+        /* why > 1? Because the "result items" always contain a result of the original image. */
+        if (result.items.length > 1) {
+          items = result.items;
+        }
+      } else if (originalImageData) {
+        /** If "Normalize Automatically" is checked, the library uses the document boundaries found in consecutive
+         * image frames to decide whether conditions are suitable for automatic normalization.
+         */
+        if (result.items.length <= 1) {
+          frameCount = 0;
+          return;
+        }
+        frameCount++;
+        /**
+         * In our case, we determine a good condition for "automatic normalization" to be
+         * "getting document boundary detected for 30 consecutive frames".
+         *
+         * NOTE that this condition will not be valid should you add a CapturedResultFilter
+         * with ResultDeduplication enabled.
+         */
+        if (frameCount === 30) {
+          frameCount = 0;
+          normalizedImageContainer.innerHTML = "";
+          /**
+           * When the condition is met, we use the document boundary found in this image frame
+           * to normalize the document by setting the coordinates of the ROI (region of interest)
+           * in the built-in template "NormalizeDocument_Default".
+           */
+          let settings = await router.getSimplifiedSettings("NormalizeDocument_Default");
+
+          settings.roiMeasuredInPercentage = 0;
+          settings.roi.points = result.items[1].location.points;
+          await router.updateSettings("NormalizeDocument_Default", settings);
+          /**
+           * After that, executes the normalization and shows the result on the page.
+           */
+          let normalizeResult = await router.capture(originalImageData, "NormalizeDocument_Default");
+          normalizedImageContainer.append(normalizeResult.items[0].toCanvas());
+          cameraViewContainer.style.display = "none";
+          btnStart.style.display = "none";
+          btnRestart.style.display = "inline";
+          btnEdit.disabled = true;
+          await router.stopCapturing();
+        }
+      }
+    }
+
+    btnStart.addEventListener("click", async () => {
+      try {
+        await (promiseCVRReady = promiseCVRReady || (async () => {
+          await cvrReady;
+          /* Starts streaming the video. */
+          await cameraEnhancer.open();
+          /* Uses the built-in template "DetectDocumentBoundaries_Default" to start a continuous boundary detection task. */
+          await router.startCapturing("DetectDocumentBoundaries_Default");
+        })());
+      } catch (ex) {
+        let errMsg = ex.message || ex;
+        console.error(errMsg);
+        alert(errMsg);
+      }
+    })
+
+    btnRestart.addEventListener("click", async () => {
+      /* Reset the UI elements and restart the detection task. */
+      imageEditorViewContainer.style.display = "none";
+      normalizedImageContainer.innerHTML = "";
+      cameraViewContainer.style.display = "block";
+      btnStart.style.display = "inline";
+      btnRestart.style.display = "none";
+      btnNormalize.disabled = true;
+      btnEdit.disabled = false;
+      layer.clearDrawingItems();
+
+      await router.startCapturing("DetectDocumentBoundaries_Default");
+    })
+
+    autoNormalize.addEventListener("change", () => {
+      btnEdit.style.display = autoNormalize.checked ? "none" : "inline";
+      btnNormalize.style.display = autoNormalize.checked ? "none" : "inline";
+    });
+
+    btnEdit.addEventListener("click", async () => {
+      if (!cameraEnhancer.isOpen() || items.length <= 1) return;
+      /* Stops the detection task since we assume we have found a good boundary. */
+      router.stopCapturing();
+      /* Hides the cameraView and shows the imageEditorView. */
+      cameraViewContainer.style.display = "none";
+      imageEditorViewContainer.style.display = "block";
+      /* Draws the image on the imageEditorView first. */
+      imageEditorView.setOriginalImage(originalImageData);
+      quads = [];
+      /* Draws the document boundary (quad) over the image. */
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type === Dynamsoft.Core.EnumCapturedResultItemType.CRIT_ORIGINAL_IMAGE) continue;
+        const points = items[i].location.points;
+        const quad = new Dynamsoft.DCE.QuadDrawingItem({ points });
+        quads.push(quad);
+        layer.addDrawingItems(quads);
+      }
+      btnStart.style.display = "none";
+      btnRestart.style.display = "inline";
+      btnNormalize.disabled = false;
+      btnEdit.disabled = true;
+    });
+
+    btnNormalize.addEventListener("click", async () => {
+      /* Gets the selected quadrilateral. */
+      let seletedItems = imageEditorView.getSelectedDrawingItems();
+      let quad;
+      if (seletedItems.length) {
+        quad = seletedItems[0].getQuad();
+      } else {
+        quad = items[1].location;
+      }
+      const isPointOverBoundary = (point) => {
+        if (point.x < 0 ||
+          point.x > originalImageData.width ||
+          point.y < 0 ||
+          point.y > originalImageData.height) {
+          return true;
+        } else {
+          return false;
+        }
+      };
+      /* Check if the points beyond the boundaries of the image. */
+      if (quad.points.some(point => isPointOverBoundary(point))) {
+        alert("The document boundaries extend beyond the boundaries of the image and cannot be used to normalize the document.");
+        return;
+      }
+
+      /* Hides the imageEditorView. */
+      imageEditorViewContainer.style.display = "none";
+      /* Removes the old normalized image if any. */
+      normalizedImageContainer.innerHTML = "";
+      /**
+       * Sets the coordinates of the ROI (region of interest)
+       * in the built-in template "NormalizeDocument_Default".
+       */
+      let newSettings = await router.getSimplifiedSettings("NormalizeDocument_Default");
+      newSettings.roiMeasuredInPercentage = 0;
+      newSettings.roi.points = quad.points;
+      await router.updateSettings("NormalizeDocument_Default", newSettings);
+      /* Executes the normalization and shows the result on the page. */
+      let normalizeResult = await router.capture(originalImageData, "NormalizeDocument_Default");
+      if (normalizeResult.items[0]) {
+        normalizedImageContainer.append(normalizeResult.items[0].toCanvas());
+      }
+      layer.clearDrawingItems();
+      btnNormalize.disabled = true;
+      btnEdit.disabled = true;
+    });
+  </script>
+</body>
+
+</html>
