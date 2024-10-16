@@ -134,19 +134,6 @@
                 MorphOperationKernelSizeY: 3,
                 MorphShape: "Rectangle",
                 ThresholdCompensation: 4,
-              },
-              {
-                BinarizationThreshold: -1,
-                BlockSizeX: 7,
-                BlockSizeY: 7,
-                EnableFillBinaryVacancy: 0,
-                GrayscaleEnhancementModesIndex: -1,
-                Mode: "BM_LOCAL_BLOCK",
-                MorphOperation: "Close",
-                MorphOperationKernelSizeX: 3,
-                MorphOperationKernelSizeY: 3,
-                MorphShape: "Rectangle",
-                ThresholdCompensation: 4,
               }
             ],
             GrayscaleEnhancementModes: [
@@ -234,7 +221,7 @@
                 [
                   {
                     "Mode": "QDM_GENERAL",
-                    "MinQuadrilateralAreaRatio": 5
+                    "MinQuadrilateralAreaRatio": 0
                   }
                 ],
               ExpectedDocumentsCount: 1,
@@ -306,8 +293,11 @@
                 GreenChannelWeight: -1,
                 Mode: "CICM_GENERAL",
                 RedChannelWeight: -1,
+              },              
+              {
+                Mode: "CICM_HSV",
                 ReferChannel: "H_CHANNEL",
-              },
+              }
             ],
             GrayscaleEnhancementModes: [
               {
@@ -341,7 +331,7 @@
                 WidthRange: "[]",
               },
             ],
-            ScaleDownThreshold: 800,
+            ScaleDownThreshold: 512,
             ScaleUpModes: [
               {
                 AcuteAngleWithXThreshold: -1,
@@ -441,7 +431,7 @@
          * NOTE that this condition will not be valid should you add a CapturedResultFilter
          * with ResultDeduplication enabled.
          */
-        if (frameCount === 20) {
+        if (frameCount === 30) {
           frameCount = 0;
           normalizedImageContainer.innerHTML = "";
           /**
