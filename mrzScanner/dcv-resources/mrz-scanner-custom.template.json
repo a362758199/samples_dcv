@@ -281,9 +281,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
@@ -327,9 +324,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
@@ -373,9 +367,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
@@ -426,9 +417,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
@@ -472,9 +460,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
@@ -524,9 +509,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
@@ -575,9 +557,6 @@
                                     "ModelNameArray": [
                                         "MRZLocalization"
                                     ]
-                                },
-                                {
-                                    "Mode": "LM_GENERAL"
                                 }
                             ]
                         }
