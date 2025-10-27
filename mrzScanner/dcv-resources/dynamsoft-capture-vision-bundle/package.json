@@ -1,0 +1,111 @@
+{
+  "name": "@dynamsoft/dynamsoft-capture-vision-bundle",
+  "version": "3.2.1000-dev-20250929164705",
+  "description": "The Dynamsoft Capture Vision Bundle module is a collection of Dynamsoft products and their dependent resources.",
+  "main": "dist/dcv.bundle.js",
+  "module": "dist/dcv.bundle.esm.js",
+  "exports": {
+    "import": {
+      "types": "./dist/dcv.bundle.d.ts",
+      "default": "./dist/dcv.bundle.esm.js"
+    },
+    "require": {
+      "types": "./dist/dcv.bundle.d.ts",
+      "default": "./dist/dcv.bundle.js"
+    }
+  },
+  "sideEffects": true,
+  "types": "dist/dcv.bundle.d.ts",
+  "type": "module",
+  "files": [
+    "/dist",
+    "LEGAL.txt",
+    "LICENSE",
+    "API Reference.url"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c --environment BUILD:production",
+    "build-dev": "rollup -c --environment BUILD:development",
+    "build-core": "cd ../CORE && npm run build-bundle -- DCV CORE && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-cvr": "cd ../CVR && npm run build-bundle -- DCV CVR && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-dbr": "cd ../DBR && npm run build-bundle -- DCV DBR && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-dce": "cd ../DCE && npm run build-bundle -- DCV DCE && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-dcp": "cd ../DCP && npm run build-bundle -- DCV DCP && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-ddn": "cd ../DDN && npm run build-bundle -- DCV DDN && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-dlr": "cd ../DLR && npm run build-bundle -- DCV DLR && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-license": "cd ../LICENSE && npm run build-bundle -- DCV LICENSE && cd ../DCV_BUNDLE && npm run build-dev",
+    "build-utility": "cd ../UTILITY && npm run build-bundle -- DCV UTILITY && cd ../DCV_BUNDLE && npm run build-dev",
+    "update:readme": "updateReadme --package=dynamsoft-capture-vision-bundle --version=latest --branch=preview --html",
+    "updateLink:npm": "updateLink --source=npm",
+    "updateLink:zip": "updateLink --source=zip",
+    "updateLink:github": "updateLink --source=github",
+    "update:prod": "updatePackage --package=dynamsoft-capture-vision-bundle --version=auto --env=production --tag=latest",
+    "update:beta": "updatePackage --package=dynamsoft-capture-vision-bundle --version=auto --env=beta --tag=beta",
+    "update:iv": "updatePackage --package=dynamsoft-capture-vision-bundle --version=auto --env=internalVersion --tag=iv",
+    "update:dev": "updatePackage --package=dynamsoft-capture-vision-bundle --version=auto --env=development --tag=latest",
+    "makeZip": "makeZip --package=dynamsoft-capture-vision-bundle --version=auto --sampleBranch=_dev --structure=new --otherPkgs=dynamsoft-capture-vision-std dynamsoft-image-processing dynamsoft-core dynamsoft-license dynamsoft-capture-vision-router dynamsoft-utility dynamsoft-camera-enhancer dynamsoft-barcode-reader dynamsoft-code-parser dynamsoft-label-recognizer dynamsoft-label-recognizer-data dynamsoft-capture-vision-dnn",
+    "easyPublish": "npm run update:dev && npm run build && npm publish",
+    "publishNoBuild": "npm run update:dev && npm publish"
+  },
+  "keywords": [
+    "barcode",
+    "qr-code",
+    "1d barcode",
+    "2d barcode",
+    "ean",
+    "upc",
+    "datamatrix",
+    "pdf-417",
+    "document scanner",
+    "ocr",
+    "text recognition",
+    "label recognition",
+    "web scanner webassembly",
+    "camera",
+    "filter",
+    "recognition",
+    "dynamsoft",
+    "dynamsoft-barcode-reader",
+    "sdk",
+    "javascript",
+    "typescript"
+  ],
+  "author": {
+    "name": "Dynamsoft",
+    "url": "https://www.dynamsoft.com",
+    "email": "support@dynamsoft.com"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": {
+    "registry": "https://npm.scannerproxy.com:802/",
+    "tag": "latest"
+  },
+  "devDependencies": {
+    "@dynamsoft/dynamsoft-barcode-reader": "11.2.10-dev-20250916165353",
+    "@dynamsoft/dynamsoft-camera-enhancer": "4.3.3-dev-20250916165417",
+    "@dynamsoft/dynamsoft-capture-vision-router": "3.2.10-dev-20250916165333",
+    "@dynamsoft/dynamsoft-code-parser": "3.2.10-dev-20250916165410",
+    "@dynamsoft/dynamsoft-document-normalizer": "3.2.10-dev-20250916165405",
+    "@dynamsoft/dynamsoft-label-recognizer": "4.2.10-dev-20250916165359",
+    "@dynamsoft/dynamsoft-license": "4.2.10-dev-20250916165340",
+    "@dynamsoft/dynamsoft-utility": "2.2.10-dev-20250916165346",
+    "@dynamsoft/rd2-scripts": "^0.1.49",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.7",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@scannerproxy/curscript-path": "^2.0.6",
+    "@scannerproxy/dlsjs": "3.0.39",
+    "@types/node": "^22.15.3",
+    "dynamsoft-core": "npm:@dynamsoft/dynamsoft-core@4.2.10-dev-20250917143502",
+    "mutable-promise": "^1.1.15",
+    "rollup": "^3.29.3",
+    "terser": "^5.43.1",
+    "tslib": "^2.6.2",
+    "typescript": "^4.9.5"
+  },
+  "overrides": {
+    "dynamsoft-core": "$dynamsoft-core"
+  }
+}

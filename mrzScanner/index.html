@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamsoft MRZ Scanner - Hello World</title>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/dynamsoft-mrz-scanner@3.0.3/dist/mrz-scanner.bundle.js"></script> -->
+    <!-- To use locally: -->
+    <script src="./dist/mrz-scanner.bundle.js"></script>
+  </head>
+
+  <body>
+    <h1 style="font-size: large">Dynamsoft MRZ Scanner</h1>
+    <div
+      id="results"
+      style="display: flex; flex-direction: column; width: 100%; height: 100%; word-wrap: break-word"
+    ></div>
+
+    <script>
+      const resultContainer = document.querySelector("#results");
+
+      // Initialize the Dynamsoft MRZ Scanner
+      const mrzscanner = new Dynamsoft.MRZScanner({
+        license: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMzE0NTQwLU16RTBOVFF3TFhkbFlpMVVjbWxoYkZCeWIybyIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21sdHMuZHluYW1zb2Z0LmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMzE0NTQwIiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2x0cy5keW5hbXNvZnQuY29tIiwiY2hlY2tDb2RlIjoyMDc0MDIyMDAyfQ==",
+        engineResourcePaths: {
+          //dcvBundle: "https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-bundle@3.2.1000-dev-20250929164705/dist/",
+          //dcvData: "https://npm.scannerproxy.com:802/cdn/@dynamsoft/dynamsoft-capture-vision-data@1.1.0-dev-20250926164841/"
+          //rootDirectory: "dcv-resources/",
+          dcvBundle: "dcv-resources/dynamsoft-capture-vision-bundle/dist/",
+          dcvData: "dcv-resources/dynamsoft-capture-vision-data/"
+        },
+        templateFilePath: "dcv-resources/mrz-scanner-custom.template.json"
+        //utilizedTemplateNames: "ReadPassportAndId12"
+      });
+
+      (async () => {
+        // Launch the scanner and wait for the result
+        const result = await mrzscanner.launch();
+        console.log(result);
+
+        if (result?.data) {
+          resultContainer.innerHTML = ""; // Clear placeholder content
+
+          if (result.originalImageResult?.toCanvas) {
+            const canvas = result.originalImageResult?.toCanvas();
+
+            canvas.style.objectFit = "contain";
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            resultContainer.appendChild(canvas);
+          }
+
+          let resultHTML = ``;
+          Object.entries(result.data).forEach(([key, value]) => {
+            const label = Dynamsoft.MRZDataLabel[key];
+
+            const container = document.createElement("div");
+            container.className = "mrz-result-container";
+            const labelContainer = document.createElement("div");
+            const valueContainer = document.createElement("div");
+
+            labelContainer.textContent = label;
+            valueContainer.textContent = `${JSON.stringify(value)}`;
+
+            container.appendChild(labelContainer);
+            container.appendChild(valueContainer);
+            resultContainer.appendChild(container);
+          });
+        } else {
+          resultContainer.innerHTML = "<p>No MRZ scanned. Please try again.</p>";
+        }
+      })();
+    </script>
+  </body>
+  <style>
+    .mrz-result-container {
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 1rem;
+    }
+
+    .mrz-result-container:first-of-type {
+      padding-top: 1rem;
+    }
+  </style>
+</html>
